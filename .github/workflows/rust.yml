@@ -1,27 +1,41 @@
 name: Rust
 
 on:
-  tags:
-    - *
+  push:
+    tags:
+      - '*'
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  publish:
+    name: Publish for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
+        include:
+            - os: ubuntu-latest
+              artifact_name: finddup
+              asset_name: finddup-linux-x64
+            - os: windows-latest
+              artifact_name: finddup.exe
+              asset_name: finddup-windows-x64.exe
+            - os: macos-latest
+              artifact_name: finddup
+              asset_name: finddup-macos-x64
 
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/upload-artifact@v2
+
+    - run: cargo build --release --verbose
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
       with:
-        name: artifact
-        path: target/release/finddup(.exe)?
-    - name: Build
-      run: cargo build --release --verbose
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: target/release/${{ matrix.artifact_name }}
+        asset_name: ${{ matrix.asset_name }}
+        tag: ${{ github.ref }}
 #    - name: Run tests
 #      run: cargo test --verbose
